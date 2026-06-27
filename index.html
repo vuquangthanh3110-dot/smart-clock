@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Smart Clock Pro - Từ xa</title>
+<style>
+  body{font-family:Arial;background:#1a1a2e;color:#eee;padding:20px}
+  .card{background:#16213e;border-radius:15px;padding:20px;margin:15px auto;max-width:600px}
+  button{padding:12px 20px;margin:8px;border:none;border-radius:8px;font-size:1.1em;cursor:pointer;width:100%}
+  .btn-guest{background:#27ae60;color:white}
+  .btn-thief{background:#e74c3c;color:white}
+  .btn-blue{background:#3498db;color:white}
+  .status{padding:10px;background:#0f3460;border-radius:8px;margin:10px 0}
+</style>
+</head>
+<body>
+  <h1>Smart Clock Pro</h1>
+  
+  <div class="card">
+    <h2 id="clock">--:--:--</h2>
+    <p>Nhiệt độ: <span id="temp">--</span>°C</p>
+    <div class="status" id="modeStatus">Đang kết nối...</div>
+  </div>
+
+  <div class="card">
+    <button class="btn-blue" onclick="setMode(0)">TẮT</button>
+    <button class="btn-guest" onclick="setMode(1)">KHÁCH</button>
+    <button class="btn-thief" onclick="setMode(2)">TRỘM</button>
+    <button class="btn-blue" onclick="toggleMusic()">Nhạc</button>
+    <button class="btn-blue" onclick="toggleLight()">Đèn</button>
+  </div>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script>
+  let client;
+
+  function connectMQTT() {
+    client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt", {
+      clientId: "Web_" + Math.random().toString(16).substr(2,8)
+    });
+
+    client.on('connect', () => {
+      console.log("Kết nối MQTT thành công");
+      client.subscribe("dongho/status");
+    });
+
+    client.on('message', (topic, message) => {
+      if (topic === "dongho/status") {
+        let d = JSON.parse(message.toString());
+        document.getElementById('clock').innerText = 
+          `${d.h.toString().padStart(2,'0')}:${d.m.toString().padStart(2,'0')}:${d.s.toString().padStart(2,'0')}`;
+        document.getElementById('temp').innerText = d.temp.toFixed(1);
+        
+        let modes = ['TẮT','KHÁCH','TRỘM'];
+        document.getElementById('modeStatus').innerText = "Chế độ: " + modes[d.mode];
+      }
+    });
+  }
+
+  function setMode(m) { client.publish("dongho/mode/set", m.toString()); }
+  function toggleMusic() { client.publish("dongho/music/set", "1"); }
+  function toggleLight() { client.publish("dongho/light/set", "1"); }
+
+  connectMQTT();
+</script>
+</body>
+</html>
