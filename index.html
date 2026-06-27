@@ -32,7 +32,7 @@
   <div class='card'>
     <h3>Chế độ & Lịch trình</h3>
     <div class='btn-row'>
-      <button class='btn btn-off' onclick='setMode(0)'>TẮT (Chạy lịch)</button>
+      <button class='btn btn-off' onclick='setMode(0)'>TẮT</button>
       <button class='btn btn-guest' onclick='setMode(1)'>KHÁCH</button>
       <button class='btn btn-thief' onclick='setMode(2)'>TRỘM</button>
     </div>
@@ -40,7 +40,7 @@
   </div>
 
   <div class='card'>
-    <h3>Âm nhạc & Âm lượng</h3>
+    <h3>Âm nhạc</h3>
     <button id='playBtn' class='btn' onclick='toggleMusic()'>PHÁT / DỪNG</button>
   </div>
 
@@ -77,19 +77,23 @@
   }
 
   function updateUI(d) {
+    // Giờ
     document.getElementById('clock').innerHTML = 
-      d.h.toString().padStart(2,'0') + ':' + 
-      d.m.toString().padStart(2,'0') + 
-      '<span>:' + d.s.toString().padStart(2,'0') + '</span>';
+      (d.h||0).toString().padStart(2,'0') + ':' + 
+      (d.m||0).toString().padStart(2,'0') + 
+      '<span>:' + (d.s||0).toString().padStart(2,'0') + '</span>';
 
-    document.getElementById('temp').innerText = d.temp.toFixed(1);
+    // Nhiệt độ
+    document.getElementById('temp').innerText = (d.temp||0).toFixed(1);
 
+    // Chế độ
     let mText = ['Đang chạy theo Lịch trình','BÁO KHÁCH','BÁO TRỘM'];
     document.getElementById('modeStatus').innerHTML = 
-      "Trạng thái: <span class='active-tag'>" + mText[d.mode] + "</span>";
+      "Trạng thái: <span class='active-tag'>" + mText[d.mode||0] + "</span>";
 
+    // Đèn
     const lightStatus = document.getElementById('lightStatus');
-    lightStatus.innerHTML = d.light == 1 
+    lightStatus.innerHTML = (d.light == 1) 
       ? "<span class='dot dot-green'></span>Đèn: Đang BẬT" 
       : "<span class='dot dot-gray'></span>Đèn: Đang TẮT";
   }
