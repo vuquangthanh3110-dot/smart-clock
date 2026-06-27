@@ -1,67 +1,153 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang='vi'>
 <head>
-<meta charset="UTF-8">
-<title>Smart Clock Pro - Từ xa</title>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>Smart Clock Pro</title>
 <style>
-  body{font-family:Arial;background:#1a1a2e;color:#eee;padding:20px}
-  .card{background:#16213e;border-radius:15px;padding:20px;margin:15px auto;max-width:600px}
-  button{padding:12px 20px;margin:8px;border:none;border-radius:8px;font-size:1.1em;cursor:pointer;width:100%}
-  .btn-guest{background:#27ae60;color:white}
-  .btn-thief{background:#e74c3c;color:white}
-  .btn-blue{background:#3498db;color:white}
-  .status{padding:10px;background:#0f3460;border-radius:8px;margin:10px 0}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;background:#1a1a2e;color:#eee;padding:15px;text-align:center}
+  .card{background:#16213e;border-radius:15px;padding:15px;margin-bottom:15px;text-align:left;box-shadow:0 4px 10px rgba(0,0,0,0.3)}
+  h3{color:#e94560;margin-bottom:12px;font-size:1.1em;border-bottom:1px solid #0f3460;padding-bottom:5px}
+  .time{font-size:3em;font-weight:bold;color:#fff;text-align:center;margin:10px 0}
+  .time span{color:#e94560;font-size:0.5em}
+  .btn{padding:12px;border:none;border-radius:8px;font-size:0.9em;cursor:pointer;font-weight:bold;transition:0.3s;width:100%;color:#fff}
+  .btn-off{background:#555}
+  .btn-guest{background:#27ae60}
+  .btn-thief{background:#e74c3c}
+  .btn-blue{background:#3498db}
+  .btn-row{display:flex;gap:8px;margin-bottom:8px}
+  .btn-row .btn{flex:1}
+  input[type=time], input[type=range]{width:100%;margin:10px 0}
+  .status{font-size:0.85em;color:#aaa;padding:8px;background:#0f3460;border-radius:6px;margin-top:5px}
+  .active-tag{color:#27ae60;font-weight:bold}
 </style>
 </head>
 <body>
-  <h1>Smart Clock Pro</h1>
-  
-  <div class="card">
-    <h2 id="clock">--:--:--</h2>
-    <p>Nhiệt độ: <span id="temp">--</span>°C</p>
-    <div class="status" id="modeStatus">Đang kết nối...</div>
+  <div class='time' id='clock'>00:00<span>:00</span></div>
+  <div style='margin-bottom:15px'>Nhiệt độ: <span id='temp' style='color:#e94560'>--</span>°C</div>
+
+  <div class='card'>
+    <h3>Chế độ & Lịch trình</h3>
+    <div class='btn-row'>
+      <button class='btn btn-off' onclick='setMode(0)'>TẮT (Chạy lịch)</button>
+      <button class='btn btn-guest' onclick='setMode(1)'>KHÁCH</button>
+      <button class='btn btn-thief' onclick='setMode(2)'>TRỘM</button>
+    </div>
+    <div class='status' id='modeStatus'>Đang tải...</div>
+    <div style='margin-top:10px'>
+      <label style='font-size:0.8em'>Cài đặt lịch tự động:</label>
+      <div class='btn-row'>
+        <input type='time' id='schedStart'>
+        <input type='time' id='schedEnd'>
+      </div>
+      <button class='btn btn-blue' onclick='saveSched()'>LƯU LỊCH TRÌNH</button>
+    </div>
   </div>
 
-  <div class="card">
-    <button class="btn-blue" onclick="setMode(0)">TẮT</button>
-    <button class="btn-guest" onclick="setMode(1)">KHÁCH</button>
-    <button class="btn-thief" onclick="setMode(2)">TRỘM</button>
-    <button class="btn-blue" onclick="toggleMusic()">Nhạc</button>
-    <button class="btn-blue" onclick="toggleLight()">Đèn</button>
+  <div class='card'>
+    <h3>Âm nhạc & Âm lượng</h3>
+    <div id='trackInfo' style='text-align:center;margin-bottom:8px;color:#3498db'>Bài: --</div>
+    <button id='playBtn' class='btn' onclick='toggleMusic()'>PHÁT</button>
+    <div class='btn-row' style='margin-top:8px'>
+      <button class='btn btn-blue' onclick='navMusic("prev")'>⏮</button>
+      <button class='btn btn-blue' onclick='navMusic("next")'>⏭</button>
+    </div>
+    <label style='font-size:0.8em'>Âm lượng: <span id='volVal'>15</span></label>
+    <input type='range' id='volRange' min='0' max='30' onchange='setVol(this.value)'>
   </div>
 
-<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <div class='card'>
+    <h3>Báo thức ⏰</h3>
+    <input type='time' id='alarmTime'>
+    <button id='alarmBtn' class='btn btn-blue' onclick='toggleAlarm()'>BẬT BÁO THỨC</button>
+  </div>
+
+  <div class='card'>
+    <h3>Đèn Chiếu Sáng</h3>
+    <button class='btn btn-guest' onclick='toggleLight()'>Bật / Tắt Đèn</button>
+    <div class='status' id='lightStatus'>
+      <span class='dot dot-gray'></span>Đèn: Đang tải...
+    </div>
+  </div>
+
 <script>
-  let client;
+function update(){
+  fetch('/status').then(r=>r.json()).then(d=>{
+    // Cập nhật giờ
+    document.getElementById('clock').innerHTML = 
+      d.h.toString().padStart(2,'0') + ':' + 
+      d.m.toString().padStart(2,'0') + 
+      '<span>:' + d.s.toString().padStart(2,'0') + '</span>';
 
+    document.getElementById('temp').innerText = d.temp.toFixed(1);
+
+    // Mode status
+    let mText = ['Đang chạy theo Lịch trình','BÁO KHÁCH','BÁO TRỘM'];
+    document.getElementById('modeStatus').innerHTML = 
+      "Trạng thái: <span class='active-tag'>" + mText[d.mode] + "</span>";
+
+    // Music
+    let pBtn = document.getElementById('playBtn');
+    pBtn.innerText = d.music ? 'DỪNG' : 'PHÁT';
+    pBtn.style.background = d.music ? '#e74c3c' : '#27ae60';
+    document.getElementById('trackInfo').innerText = "Đang chọn bài: " + d.track;
+    document.getElementById('volVal').innerText = d.vol;
+
+    // Alarm
+    let aBtn = document.getElementById('alarmBtn');
+    aBtn.innerText = d.alrmA ? 'TẮT BÁO THỨC' : 'BẬT BÁO THỨC';
+    aBtn.style.background = d.alrmA ? '#e74c3c' : '#3498db';
+
+    // === CẬP NHẬT TRẠNG THÁI ĐÈN (QUAN TRỌNG) ===
+    const lightStatus = document.getElementById('lightStatus');
+    if (d.light == 1) {
+      lightStatus.innerHTML = "<span class='dot dot-green'></span>Đèn: Đang BẬT";
+    } else {
+      lightStatus.innerHTML = "<span class='dot dot-gray'></span>Đèn: Đang TẮT";
+    }
+  }).catch(err => console.log("Lỗi cập nhật:", err));
+}
+// === PHẦN MQTT (Điều khiển từ xa) ===
+  let mqttClient;
   function connectMQTT() {
-    client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt", {
+    mqttClient = mqtt.connect("wss://broker.hivemq.com:8884/mqtt", {
       clientId: "Web_" + Math.random().toString(16).substr(2,8)
     });
 
-    client.on('connect', () => {
-      console.log("Kết nối MQTT thành công");
-      client.subscribe("dongho/status");
+    mqttClient.on('connect', () => {
+      console.log("MQTT Connected");
+      mqttClient.subscribe("dongho/status");
     });
 
-    client.on('message', (topic, message) => {
-      if (topic === "dongho/status") {
-        let d = JSON.parse(message.toString());
-        document.getElementById('clock').innerText = 
-          `${d.h.toString().padStart(2,'0')}:${d.m.toString().padStart(2,'0')}:${d.s.toString().padStart(2,'0')}`;
-        document.getElementById('temp').innerText = d.temp.toFixed(1);
-        
-        let modes = ['TẮT','KHÁCH','TRỘM'];
-        document.getElementById('modeStatus').innerText = "Chế độ: " + modes[d.mode];
-      }
+    mqttClient.on('message', (topic, message) => {
+      if (topic === "dongho/status") update();
     });
   }
+function setMode(m){ fetch('/mode?v='+m).then(()=>update()); }
+function toggleMusic(){ fetch('/music').then(()=>update()); }
+function navMusic(a){ fetch('/musicnav?act='+a).then(()=>update()); }
+function setVol(v){ fetch('/volume?v='+v).then(()=>update()); }
+function saveSched(){
+  let s=document.getElementById('schedStart').value, e=document.getElementById('schedEnd').value;
+  if(!s||!e) return alert('Chọn giờ!');
+  fetch('/schedule?start='+s+'&end='+e).then(()=>alert('Đã lưu lịch trình!'));
+}
+function toggleAlarm(){
+  let t=document.getElementById('alarmTime').value;
+  fetch('/alarm?t='+t).then(()=>update());
+}
 
-  function setMode(m) { client.publish("dongho/mode/set", m.toString()); }
-  function toggleMusic() { client.publish("dongho/music/set", "1"); }
-  function toggleLight() { client.publish("dongho/light/set", "1"); }
-
-  connectMQTT();
+function toggleLight() {
+  fetch('/light').then(()=>update());   // Cập nhật ngay sau khi bấm
+}
+  window.onload = () => {
+    connectMQTT();
+    setInterval(update, 1000);
+    update();
+  };
+setInterval(update, 1000);
+update();
 </script>
 </body>
 </html>
