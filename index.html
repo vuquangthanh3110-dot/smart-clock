@@ -40,7 +40,7 @@
   </div>
 
   <div class='card'>
-    <h3>Âm nhạc</h3>
+    <h3>Âm nhạc & Âm lượng</h3>
     <button id='playBtn' class='btn' onclick='toggleMusic()'>PHÁT / DỪNG</button>
   </div>
 
@@ -71,7 +71,7 @@
         try {
           let d = JSON.parse(message.toString());
           updateUI(d);
-        } catch(e) {}
+        } catch(e) { console.log("Parse error"); }
       }
     });
   }
