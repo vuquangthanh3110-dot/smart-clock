@@ -12,6 +12,10 @@
   .time{font-size:3em;font-weight:bold;color:#fff;text-align:center;margin:10px 0}
   .time span{color:#e94560;font-size:0.5em}
   .btn{padding:14px;border:none;border-radius:8px;font-size:0.95em;cursor:pointer;font-weight:bold;transition:0.3s;width:100%;color:#fff}
+  .btn-off{background:#555}
+  .btn-guest{background:#27ae60}
+  .btn-thief{background:#e74c3c}
+  .btn-blue{background:#3498db}
   .btn-row{display:flex;gap:12px;margin:12px 0}
   .btn-row .btn{flex:1}
   input[type=time], input[type=range]{width:100%;margin:10px 0}
@@ -26,6 +30,7 @@
   <div class='time' id='clock'>00:00<span>:00</span></div>
   <div style='margin-bottom:15px'>Nhiệt độ: <span id='temp' style='color:#e94560'>--</span>°C</div>
 
+  <!-- Chế độ -->
   <div class='card'>
     <h3>Chế độ</h3>
     <div class='btn-row'>
@@ -36,6 +41,7 @@
     <div class='status' id='modeStatus'>Đang tải...</div>
   </div>
 
+  <!-- Âm nhạc -->
   <div class='card'>
     <h3>Âm nhạc</h3>
     <button id='playBtn' class='btn' onclick='toggleMusic()'>PHÁT</button>
@@ -47,12 +53,14 @@
     <input type='range' id='volRange' min='0' max='30' value='15' oninput='setVolume(this.value)'>
   </div>
 
+  <!-- Báo thức -->
   <div class='card'>
     <h3>Báo thức ⏰</h3>
     <input type='time' id='alarmTime'>
     <button id='alarmBtn' class='btn btn-blue' onclick='toggleAlarm()'>BẬT BÁO THỨC</button>
   </div>
 
+  <!-- Đèn -->
   <div class='card'>
     <h3>Đèn Chiếu Sáng</h3>
     <button id='lightBtn' class='btn btn-blue' onclick='toggleLight()'>BẬT / TẮT ĐÈN</button>
@@ -126,7 +134,7 @@
   }
   function toggleAlarm() {
     const t = document.getElementById('alarmTime').value;
-    if(t) if(mqttClient) mqttClient.publish("dongho/alarm/set", t);
+    if(t && mqttClient) mqttClient.publish("dongho/alarm/set", t);
   }
   function toggleLight() { 
     if(mqttClient) mqttClient.publish("dongho/light/set", "toggle"); 
