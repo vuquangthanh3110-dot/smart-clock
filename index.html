@@ -3,7 +3,7 @@
 <head>
 <meta charset='UTF-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'>
-<title>Smart Clock Pro</title>
+<title>Smart Clock Pro - Từ xa</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:Arial,sans-serif;background:#1a1a2e;color:#eee;padding:15px;text-align:center}
@@ -16,7 +16,6 @@
   .btn-guest{background:#27ae60}
   .btn-thief{background:#e74c3c}
   .btn-blue{background:#3498db}
-  .btn-active{background:#27ae60}
   .btn-row{display:flex;gap:8px;margin-bottom:8px}
   .btn-row .btn{flex:1}
   .status{font-size:0.85em;color:#aaa;padding:8px;background:#0f3460;border-radius:6px;margin-top:5px}
@@ -31,7 +30,7 @@
   <div style='margin-bottom:15px'>Nhiệt độ: <span id='temp' style='color:#e94560'>--</span>°C</div>
 
   <div class='card'>
-    <h3>Chế độ & Lịch trình</h3>
+    <h3>Chế độ</h3>
     <div class='btn-row'>
       <button class='btn btn-off' onclick='setMode(0)'>TẮT</button>
       <button class='btn btn-guest' onclick='setMode(1)'>KHÁCH</button>
@@ -43,10 +42,14 @@
   <div class='card'>
     <h3>Âm nhạc</h3>
     <button id='playBtn' class='btn' onclick='toggleMusic()'>PHÁT</button>
+    <div class='btn-row'>
+      <button class='btn btn-blue' onclick='prevTrack()'>⏮</button>
+      <button class='btn btn-blue' onclick='nextTrack()'>⏭</button>
+    </div>
   </div>
 
   <div class='card'>
-    <h3>Đèn Chiếu Sáng</h3>
+    <h3>Đèn</h3>
     <button id='lightBtn' class='btn btn-blue' onclick='toggleLight()'>Bật / Tắt Đèn</button>
     <div class='status' id='lightStatus'>
       <span class='dot dot-gray'></span>Đèn: Đang tải...
@@ -56,7 +59,7 @@
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
   let mqttClient;
-  let isMusicPlaying = false;
+  let isPlaying = false;
   let isLightOn = false;
 
   function connectMQTT() {
@@ -80,45 +83,37 @@
   }
 
   function updateUI(d) {
-    // Giờ
     document.getElementById('clock').innerHTML = 
       (d.h||0).toString().padStart(2,'0') + ':' + 
       (d.m||0).toString().padStart(2,'0') + 
       '<span>:' + (d.s||0).toString().padStart(2,'0') + '</span>';
 
-    // Nhiệt độ
     document.getElementById('temp').innerText = (d.temp||0).toFixed(1);
 
-    // Chế độ
     let mText = ['TẮT','KHÁCH','TRỘM'];
     document.getElementById('modeStatus').innerHTML = 
       "Trạng thái: <span class='active-tag'>" + mText[d.mode||0] + "</span>";
 
-    // Đèn
-    isLightOn = d.light == 1;
     const lightBtn = document.getElementById('lightBtn');
     const lightStatus = document.getElementById('lightStatus');
-    if (isLightOn) {
-      lightBtn.style.background = '#27ae60';
-      lightBtn.innerText = 'TẮT ĐÈN';
-      lightStatus.innerHTML = "<span class='dot dot-green'></span>Đèn: Đang BẬT";
-    } else {
-      lightBtn.style.background = '#3498db';
-      lightBtn.innerText = 'BẬT ĐÈN';
-      lightStatus.innerHTML = "<span class='dot dot-gray'></span>Đèn: Đang TẮT";
-    }
+    isLightOn = d.light == 1;
+    lightBtn.innerText = isLightOn ? 'TẮT ĐÈN' : 'BẬT ĐÈN';
+    lightBtn.style.background = isLightOn ? '#27ae60' : '#3498db';
+    lightStatus.innerHTML = isLightOn 
+      ? "<span class='dot dot-green'></span>Đèn: Đang BẬT" 
+      : "<span class='dot dot-gray'></span>Đèn: Đang TẮT";
   }
 
   function setMode(m) { if(mqttClient) mqttClient.publish("dongho/mode/set", m.toString()); }
   function toggleMusic() { 
-    isMusicPlaying = !isMusicPlaying;
-    if(mqttClient) mqttClient.publish("dongho/music/set", isMusicPlaying ? "1" : "0"); 
-    document.getElementById('playBtn').innerText = isMusicPlaying ? 'DỪNG' : 'PHÁT';
-    document.getElementById('playBtn').style.background = isMusicPlaying ? '#e74c3c' : '#27ae60';
+    isPlaying = !isPlaying;
+    if(mqttClient) mqttClient.publish("dongho/music/set", isPlaying ? "1" : "0"); 
+    document.getElementById('playBtn').innerText = isPlaying ? 'DỪNG' : 'PHÁT';
+    document.getElementById('playBtn').style.background = isPlaying ? '#e74c3c' : '#27ae60';
   }
-  function toggleLight() { 
-    if(mqttClient) mqttClient.publish("dongho/light/set", isLightOn ? "0" : "1"); 
-  }
+  function prevTrack() { if(mqttClient) mqttClient.publish("dongho/music/prev", "1"); }
+  function nextTrack() { if(mqttClient) mqttClient.publish("dongho/music/next", "1"); }
+  function toggleLight() { if(mqttClient) mqttClient.publish("dongho/light/set", isLightOn ? "0" : "1"); }
 
   window.onload = () => {
     connectMQTT();
