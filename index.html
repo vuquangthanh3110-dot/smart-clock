@@ -3,7 +3,7 @@
 <head>
 <meta charset='UTF-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'>
-<title>Smart Clock Pro</title>
+<title>Smart Clock Pro - Điều khiển từ xa</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:Arial,sans-serif;background:#1a1a2e;color:#eee;padding:15px;text-align:center}
@@ -16,9 +16,9 @@
   .btn-guest{background:#27ae60}
   .btn-thief{background:#e74c3c}
   .btn-blue{background:#3498db}
-  .btn-row{display:flex;gap:8px;margin-bottom:8px}
+  .btn-row{display:flex;gap:10px;margin-bottom:10px}
   .btn-row .btn{flex:1}
-  input[type=time], input[type=range]{width:100%;margin:10px 0}
+  input[type=time], input[type=range]{width:100%;margin:8px 0}
   .status{font-size:0.85em;color:#aaa;padding:8px;background:#0f3460;border-radius:6px;margin-top:5px}
   .active-tag{color:#27ae60;font-weight:bold}
   .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
@@ -27,43 +27,30 @@
 </style>
 </head>
 <body>
-  <div class='time' id='clock'>00:00<span>:00</span></div>
+  <div class='time' id='clock'>--:--<span>:--</span></div>
   <div style='margin-bottom:15px'>Nhiệt độ: <span id='temp' style='color:#e94560'>--</span>°C</div>
 
   <!-- Chế độ -->
   <div class='card'>
-    <h3>Chế độ & Lịch trình</h3>
+    <h3>Chế độ</h3>
     <div class='btn-row'>
       <button class='btn btn-off' onclick='setMode(0)'>TẮT</button>
       <button class='btn btn-guest' onclick='setMode(1)'>KHÁCH</button>
       <button class='btn btn-thief' onclick='setMode(2)'>TRỘM</button>
     </div>
     <div class='status' id='modeStatus'>Đang tải...</div>
-    
-    <div style='margin-top:15px'>
-      <label style='font-size:0.8em'>Lịch tự động (Khách → Trộm):</label>
-      <div class='btn-row'>
-        <input type='time' id='schedStart' value="07:00">
-        <input type='time' id='schedEnd' value="22:00">
-      </div>
-      <button class='btn btn-blue' onclick='saveSchedule()'>LƯU LỊCH TRÌNH</button>
-    </div>
   </div>
 
   <!-- Âm nhạc -->
   <div class='card'>
-    <h3>Âm nhạc & Âm lượng</h3>
+    <h3>Âm nhạc</h3>
     <button id='playBtn' class='btn' onclick='toggleMusic()'>PHÁT</button>
-    
     <div class='btn-row' style='margin-top:12px'>
       <button class='btn btn-blue' onclick='prevTrack()'>⏮ Prev</button>
       <button class='btn btn-blue' onclick='nextTrack()'>⏭ Next</button>
     </div>
-    
-    <div style='margin-top:10px'>
-      <label>Âm lượng: <span id='volVal'>15</span></label>
-      <input type='range' id='volRange' min='0' max='30' value='15' oninput='setVolume(this.value)'>
-    </div>
+    <label>Âm lượng: <span id='volVal'>15</span></label>
+    <input type='range' id='volRange' min='0' max='30' value='15' oninput='setVolume(this.value)'>
   </div>
 
   <!-- Báo thức -->
@@ -82,63 +69,89 @@
     </div>
   </div>
 
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
-function update(){
-  fetch('/status').then(r=>r.json()).then(d=>{
+  let mqttClient = null;
+  let isPlaying = false;
+
+  function connectMQTT() {
+    mqttClient = mqtt.connect("wss://broker.hivemq.com:8884/mqtt", {
+      clientId: "WebClient_" + Math.random().toString(16).substr(2, 8)
+    });
+
+    mqttClient.on('connect', () => {
+      console.log("✅ MQTT Connected");
+      mqttClient.subscribe("dongho/status");
+    });
+
+    mqttClient.on('message', (topic, message) => {
+      if (topic === "dongho/status") {
+        try {
+          const d = JSON.parse(message.toString());
+          updateUI(d);
+        } catch(e) {}
+      }
+    });
+
+    mqttClient.on('error', (err) => console.error("MQTT Error:", err));
+  }
+
+  function updateUI(d) {
+    // Cập nhật giờ
     document.getElementById('clock').innerHTML = 
-      d.h.toString().padStart(2,'0') + ':' + 
-      d.m.toString().padStart(2,'0') + 
-      '<span>:' + d.s.toString().padStart(2,'0') + '</span>';
+      (d.h || 0).toString().padStart(2,'0') + ':' + 
+      (d.m || 0).toString().padStart(2,'0') + 
+      '<span>:' + (d.s || 0).toString().padStart(2,'0') + '</span>';
 
-    document.getElementById('temp').innerText = d.temp.toFixed(1);
+    // Nhiệt độ
+    document.getElementById('temp').innerText = (d.temp || 0).toFixed(1);
 
-    let mText = ['TẮT','KHÁCH','TRỘM'];
+    // Mode
+    const mText = ['TẮT', 'KHÁCH', 'TRỘM'];
     document.getElementById('modeStatus').innerHTML = 
-      "Trạng thái: <span class='active-tag'>" + mText[d.mode] + "</span>";
+      "Trạng thái: <span class='active-tag'>" + mText[d.mode || 0] + "</span>";
 
     // Âm nhạc
-    let playBtn = document.getElementById('playBtn');
-    playBtn.innerText = d.music ? 'DỪNG' : 'PHÁT';
-    playBtn.style.background = d.music ? '#e74c3c' : '#27ae60';
+    const playBtn = document.getElementById('playBtn');
+    isPlaying = d.music === true || d.music === "true" || d.music === 1;
+    playBtn.innerText = isPlaying ? 'DỪNG' : 'PHÁT';
+    playBtn.style.background = isPlaying ? '#e74c3c' : '#27ae60';
 
     // Đèn
-    let lightBtn = document.getElementById('lightBtn');
-    let lightStatus = document.getElementById('lightStatus');
-    lightBtn.innerText = d.light ? 'TẮT ĐÈN' : 'BẬT ĐÈN';
-    lightStatus.innerHTML = d.light 
+    const lightBtn = document.getElementById('lightBtn');
+    const lightStatus = document.getElementById('lightStatus');
+    const isLightOn = d.light == 1;
+    lightBtn.innerText = isLightOn ? 'TẮT ĐÈN' : 'BẬT ĐÈN';
+    lightStatus.innerHTML = isLightOn 
       ? "<span class='dot dot-green'></span>Đèn: Đang BẬT" 
       : "<span class='dot dot-gray'></span>Đèn: Đang TẮT";
-  });
-}
+  }
 
-function setMode(m){ fetch('/mode?v='+m).then(()=>update()); }
+  // Các hàm điều khiển
+  function setMode(m) { if(mqttClient) mqttClient.publish("dongho/mode/set", m.toString()); }
+  function toggleMusic() { 
+    isPlaying = !isPlaying;
+    if(mqttClient) mqttClient.publish("dongho/music/set", isPlaying ? "1" : "0"); 
+  }
+  function prevTrack() { if(mqttClient) mqttClient.publish("dongho/music/prev", "1"); }
+  function nextTrack() { if(mqttClient) mqttClient.publish("dongho/music/next", "1"); }
+  function setVolume(v) { 
+    if(mqttClient) mqttClient.publish("dongho/volume/set", v.toString()); 
+    document.getElementById('volVal').innerText = v;
+  }
+  function toggleLight() { if(mqttClient) mqttClient.publish("dongho/light/set", "toggle"); }
+  function toggleAlarm() {
+    const t = document.getElementById('alarmTime').value;
+    if(t) if(mqttClient) mqttClient.publish("dongho/alarm/set", t);
+  }
 
-function toggleMusic(){ fetch('/music').then(()=>update()); }
-function prevTrack(){ fetch('/musicnav?act=prev').then(()=>update()); }
-function nextTrack(){ fetch('/musicnav?act=next').then(()=>update()); }
-
-function setVolume(v){ 
-  fetch('/volume?v='+v).then(()=>update()); 
-  document.getElementById('volVal').innerText = v;
-}
-
-function saveSchedule(){
-  let s = document.getElementById('schedStart').value;
-  let e = document.getElementById('schedEnd').value;
-  if(!s || !e) return alert('Vui lòng chọn giờ!');
-  fetch('/schedule?start='+s+'&end='+e).then(()=>alert('Đã lưu lịch trình!'));
-}
-
-function toggleAlarm(){
-  let t = document.getElementById('alarmTime').value;
-  if(!t) return alert('Chọn giờ báo thức!');
-  fetch('/alarm?t='+t).then(()=>update());
-}
-
-function toggleLight(){ fetch('/light').then(()=>update()); }
-
-setInterval(update, 1000);
-update();
+  // Khởi tạo
+  window.onload = () => {
+    connectMQTT();
+    setInterval(() => {
+      if(mqttClient && mqttClient.connected) mqttClient.publish("dongho/status/request", "1");
+    }, 2000);
+  };
 </script>
 </body>
 </html>
