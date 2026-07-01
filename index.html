@@ -136,9 +136,21 @@
     document.getElementById('volVal').innerText = v;
   }
   function toggleAlarm() {
-    const t = document.getElementById('alarmTime').value;
-    if(t && mqttClient) mqttClient.publish("dongho/alarm/set", t);
+  const t = document.getElementById('alarmTime').value;
+  const btn = document.getElementById('alarmBtn');
+  
+  if (t) {
+    if (btn.innerText.includes("BẬT")) {
+      mqttClient.publish("dongho/alarm/set", t);
+      btn.innerText = "TẮT BÁO THỨC";
+      btn.style.background = "#e74c3c";
+    } else {
+      mqttClient.publish("dongho/alarm/off", "1");
+      btn.innerText = "BẬT BÁO THỨC";
+      btn.style.background = "#3498db";
+    }
   }
+}
   function toggleLight() { 
     if(mqttClient) mqttClient.publish("dongho/light/set", "toggle"); 
   }
