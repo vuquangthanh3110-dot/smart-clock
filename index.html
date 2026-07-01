@@ -116,7 +116,11 @@
   }
 
   function setMode(m) { 
-    if(mqttClient) mqttClient.publish("dongho/mode/set", m.toString()); 
+    if(mqttClient) {
+      mqttClient.publish("dongho/mode/set", m.toString());
+      // Gửi thêm lệnh tắt lịch tự động khi chọn TẮT
+      if (m === 0) mqttClient.publish("dongho/schedule/set", "0");
+    }
   }
   function toggleMusic() { 
     isPlaying = !isPlaying;
