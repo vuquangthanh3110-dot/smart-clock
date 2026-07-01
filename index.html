@@ -143,16 +143,29 @@
     if(mqttClient) mqttClient.publish("dongho/light/set", "toggle"); 
   }
   function saveSchedule() {
-    const start = document.getElementById('schedStart').value;
-    const end = document.getElementById('schedEnd').value;
-    if (start && end && mqttClient) {
-      mqttClient.publish("dongho/schedule/start", start);
-      mqttClient.publish("dongho/schedule/end", end);
-      alert("✅ Đã lưu lịch!");
-    } else {
-      alert("Chọn thời gian trước!");
-    }
+  const start = document.getElementById('schedStart').value;
+  const end = document.getElementById('schedEnd').value;
+  
+  console.log("=== DEBUG LỊCH ===");
+  console.log("Start:", start);
+  console.log("End:", end);
+  console.log("MQTT Client connected:", mqttClient ? mqttClient.connected : false);
+
+  if (!start || !end) {
+    alert("Vui lòng chọn thời gian!");
+    return;
   }
+
+  if (!mqttClient || !mqttClient.connected) {
+    alert("MQTT chưa kết nối!");
+    return;
+  }
+
+  mqttClient.publish("dongho/schedule/start", start);
+  mqttClient.publish("dongho/schedule/end", end);
+  
+  alert("Đã gửi lịch đến ESP32! Kiểm tra Serial.");
+}
 
   window.onload = () => {
     connectMQTT();
