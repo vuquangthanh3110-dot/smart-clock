@@ -49,11 +49,36 @@
     </div>
   </div>
 
-  <!-- Các phần khác giữ nguyên... -->
+  <div class='card'>
+    <h3>Âm nhạc</h3>
+    <button id='playBtn' class='btn' onclick='toggleMusic()'>PHÁT</button>
+    <div class='btn-row'>
+      <button class='btn btn-blue' onclick='prevTrack()'>⏮ Prev</button>
+      <button class='btn btn-blue' onclick='nextTrack()'>⏭ Next</button>
+    </div>
+    <label>Âm lượng: <span id='volVal'>15</span></label>
+    <input type='range' id='volRange' min='0' max='30' value='15' oninput='setVolume(this.value)'>
+  </div>
+
+  <div class='card'>
+    <h3>Báo thức ⏰</h3>
+    <input type='time' id='alarmTime'>
+    <button id='alarmBtn' class='btn btn-blue' onclick='toggleAlarm()'>BẬT BÁO THỨC</button>
+  </div>
+
+  <div class='card'>
+    <h3>Đèn Chiếu Sáng</h3>
+    <button id='lightBtn' class='btn btn-blue' onclick='toggleLight()'>BẬT / TẮT ĐÈN</button>
+    <div class='status' id='lightStatus'>
+      <span class='dot dot-gray'></span>Đèn: Đang tải...
+    </div>
+  </div>
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
   let mqttClient = null;
+  let isPlaying = false;
+  let isLightOn = false;
 
   function connectMQTT() {
     mqttClient = mqtt.connect("wss://broker.hivemq.com:8884/mqtt", {
@@ -75,22 +100,30 @@
     });
   }
 
-  function saveSchedule() {
-    const start = document.getElementById('schedStart').value;
-    const end = document.getElementById('schedEnd').value;
-    
-    console.log("Đang gửi lịch: Start=" + start + ", End=" + end);
+  function updateUI(d) {
+    document.getElementById('clock').innerHTML = 
+      (d.h||0).toString().padStart(2,'0') + ':' + 
+      (d.m||0).toString().padStart(2,'0') + 
+      '<span>:' + (d.s||0).toString().padStart(2,'0') + '</span>';
 
-    if (start && end && mqttClient) {
-      mqttClient.publish("dongho/schedule/start", start);
-      mqttClient.publish("dongho/schedule/end", end);
-      alert("Đã gửi lịch đến ESP32!");
-    } else {
-      alert("Vui lòng chọn thời gian!");
-    }
+    document.getElementById('temp').innerText = (d.temp||0).toFixed(1);
+
+    const mText = ['TẮT','KHÁCH','TRỘM'];
+    document.getElementById('modeStatus').innerHTML = 
+      "Trạng thái: <span class='active-tag'>" + mText[d.mode||0] + "</span>";
+
+    const playBtn = document.getElementById('playBtn');
+    isPlaying = !!d.music;
+    playBtn.innerText = isPlaying ? 'DỪNG' : 'PHÁT';
+    playBtn.style.background = isPlaying ? '#e74c3c' : '#27ae60';
+
+    isLightOn = d.light == 1;
+    document.getElementById('lightBtn').innerText = isLightOn ? 'TẮT ĐÈN' : 'BẬT ĐÈN';
+    document.getElementById('lightStatus').innerHTML = isLightOn 
+      ? "<span class='dot dot-green'></span>Đèn: Đang BẬT" 
+      : "<span class='dot dot-gray'></span>Đèn: Đang TẮT";
   }
 
-  // Các hàm khác giữ nguyên...
   function setMode(m) { if(mqttClient) mqttClient.publish("dongho/mode/set", m.toString()); }
   function toggleMusic() { 
     isPlaying = !isPlaying;
@@ -108,6 +141,17 @@
   }
   function toggleLight() { 
     if(mqttClient) mqttClient.publish("dongho/light/set", "toggle"); 
+  }
+  function saveSchedule() {
+    const start = document.getElementById('schedStart').value;
+    const end = document.getElementById('schedEnd').value;
+    if (start && end && mqttClient) {
+      mqttClient.publish("dongho/schedule/start", start);
+      mqttClient.publish("dongho/schedule/end", end);
+      alert("✅ Đã lưu lịch!");
+    } else {
+      alert("Chọn thời gian trước!");
+    }
   }
 
   window.onload = () => {
