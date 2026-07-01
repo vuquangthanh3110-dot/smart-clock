@@ -31,13 +31,22 @@
   <div style='margin-bottom:15px'>Nhiệt độ: <span id='temp' style='color:#e94560'>--</span>°C</div>
 
   <div class='card'>
-    <h3>Chế độ</h3>
+    <h3>Chế độ & Lịch trình</h3>
     <div class='btn-row'>
       <button class='btn btn-off' onclick='setMode(0)'>TẮT</button>
       <button class='btn btn-guest' onclick='setMode(1)'>KHÁCH</button>
       <button class='btn btn-thief' onclick='setMode(2)'>TRỘM</button>
     </div>
     <div class='status' id='modeStatus'>Đang tải...</div>
+    
+    <div style='margin-top:15px'>
+      <label>Lịch tự động:</label>
+      <div class='btn-row'>
+        <input type='time' id='schedStart'>
+        <input type='time' id='schedEnd'>
+      </div>
+      <button class='btn btn-blue' onclick='saveSchedule()'>LƯU LỊCH</button>
+    </div>
   </div>
 
   <div class='card'>
@@ -115,13 +124,7 @@
       : "<span class='dot dot-gray'></span>Đèn: Đang TẮT";
   }
 
-  function setMode(m) { 
-    if(mqttClient) {
-      mqttClient.publish("dongho/mode/set", m.toString());
-      // Gửi thêm lệnh tắt lịch tự động khi chọn TẮT
-      if (m === 0) mqttClient.publish("dongho/schedule/set", "0");
-    }
-  }
+  function setMode(m) { if(mqttClient) mqttClient.publish("dongho/mode/set", m.toString()); }
   function toggleMusic() { 
     isPlaying = !isPlaying;
     if(mqttClient) mqttClient.publish("dongho/music/set", isPlaying ? "1" : "0"); 
@@ -139,12 +142,21 @@
   function toggleLight() { 
     if(mqttClient) mqttClient.publish("dongho/light/set", "toggle"); 
   }
+  function saveSchedule() {
+    const start = document.getElementById('schedStart').value;
+    const end = document.getElementById('schedEnd').value;
+    if (start && end && mqttClient) {
+      mqttClient.publish("dongho/schedule/start", start);
+      mqttClient.publish("dongho/schedule/end", end);
+      alert("Đã lưu lịch tự động!");
+    }
+  }
 
   window.onload = () => {
     connectMQTT();
     setInterval(() => {
       if(mqttClient && mqttClient.connected) mqttClient.publish("dongho/status/request", "1");
-    }, 1200);
+    }, 1500);
   };
 </script>
 </body>
