@@ -3,7 +3,7 @@
 <head>
 <meta charset='UTF-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'>
-<title>Smart Clock Pro - Từ xa</title>
+<title>Smart Clock Pro</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:Arial,sans-serif;background:#1a1a2e;color:#eee;padding:15px;text-align:center}
@@ -40,7 +40,7 @@
     <div class='status' id='modeStatus'>Đang tải...</div>
     
     <div style='margin-top:15px'>
-      <label>Lịch tự động:</label>
+      <label>Lịch tự động (Start - End):</label>
       <div class='btn-row'>
         <input type='time' id='schedStart'>
         <input type='time' id='schedEnd'>
@@ -148,7 +148,9 @@
     if (start && end && mqttClient) {
       mqttClient.publish("dongho/schedule/start", start);
       mqttClient.publish("dongho/schedule/end", end);
-      alert("Đã lưu lịch tự động!");
+      alert("✅ Đã lưu lịch tự động!");
+    } else {
+      alert("Vui lòng chọn thời gian!");
     }
   }
 
