@@ -40,7 +40,7 @@
     <div class='status' id='modeStatus'>Đang tải...</div>
     
     <div style='margin-top:15px'>
-      <label>Lịch tự động (Start - End):</label>
+      <label>Lịch tự động:</label>
       <div class='btn-row'>
         <input type='time' id='schedStart'>
         <input type='time' id='schedEnd'>
@@ -148,9 +148,9 @@
     if (start && end && mqttClient) {
       mqttClient.publish("dongho/schedule/start", start);
       mqttClient.publish("dongho/schedule/end", end);
-      alert("✅ Đã lưu lịch tự động!");
+      alert("✅ Đã lưu lịch!");
     } else {
-      alert("Vui lòng chọn thời gian!");
+      alert("Chọn thời gian trước!");
     }
   }
 
