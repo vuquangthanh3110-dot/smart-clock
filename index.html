@@ -73,7 +73,7 @@
 
   function connectMQTT() {
     mqttClient = mqtt.connect("wss://broker.hivemq.com:8884/mqtt", {
-      clientId: "WebClient_" + Math.random().toString(16).substr(2,8)
+      clientId: "Web_" + Math.random().toString(16).substr(2,8)
     });
 
     mqttClient.on('connect', () => {
@@ -92,7 +92,6 @@
   }
 
   function updateUI(d) {
-    // Cập nhật giờ và nhiệt độ
     document.getElementById('clock').innerHTML = 
       (d.h||0).toString().padStart(2,'0') + ':' + 
       (d.m||0).toString().padStart(2,'0') + 
@@ -100,18 +99,15 @@
 
     document.getElementById('temp').innerText = (d.temp||0).toFixed(1);
 
-    // Mode
     const mText = ['TẮT','KHÁCH','TRỘM'];
     document.getElementById('modeStatus').innerHTML = 
       "Trạng thái: <span class='active-tag'>" + mText[d.mode||0] + "</span>";
 
-    // Âm nhạc
     const playBtn = document.getElementById('playBtn');
     isPlaying = !!d.music;
     playBtn.innerText = isPlaying ? 'DỪNG' : 'PHÁT';
     playBtn.style.background = isPlaying ? '#e74c3c' : '#27ae60';
 
-    // Đèn
     isLightOn = d.light == 1;
     document.getElementById('lightBtn').innerText = isLightOn ? 'TẮT ĐÈN' : 'BẬT ĐÈN';
     document.getElementById('lightStatus').innerHTML = isLightOn 
@@ -119,8 +115,9 @@
       : "<span class='dot dot-gray'></span>Đèn: Đang TẮT";
   }
 
-  // Điều khiển
-  function setMode(m) { if(mqttClient) mqttClient.publish("dongho/mode/set", m.toString()); }
+  function setMode(m) { 
+    if(mqttClient) mqttClient.publish("dongho/mode/set", m.toString()); 
+  }
   function toggleMusic() { 
     isPlaying = !isPlaying;
     if(mqttClient) mqttClient.publish("dongho/music/set", isPlaying ? "1" : "0"); 
@@ -143,7 +140,7 @@
     connectMQTT();
     setInterval(() => {
       if(mqttClient && mqttClient.connected) mqttClient.publish("dongho/status/request", "1");
-    }, 1000);
+    }, 1200);
   };
 </script>
 </body>
