@@ -74,6 +74,11 @@
     </div>
   </div>
 
+ <div class='card'>
+    <h3>Serial Log</h3>
+    <pre id='log' style='background:#0f3460;color:#0f0;padding:10px;height:200px;overflow-y:scroll;font-family:monospace;font-size:0.85em;white-space:pre-wrap'></pre>
+  </div>
+
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
   let mqttClient = null;
@@ -157,7 +162,14 @@
   function saveSchedule() {
   const start = document.getElementById('schedStart').value;
   const end = document.getElementById('schedEnd').value;
-  
+
+  let logLines = [];
+  function addLog(text) {
+    logLines.push(text);
+    if (logLines.length > 50) logLines.shift();  // Giữ tối đa 50 dòng
+    document.getElementById('log').innerText = logLines.join('\n');
+  }
+   
   console.log("=== DEBUG LỊCH ===");
   console.log("Start:", start);
   console.log("End:", end);
