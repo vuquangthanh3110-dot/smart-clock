@@ -39,7 +39,7 @@
     </div>
     <div class='status' id='modeStatus'>Đang tải...</div>
     <div class='status' id='radarStatus'>Cảm biến: Đang tải...</div>
-    <div class='status' id='relayStatus'>Relay: Đang tải...</div>
+    <div class='status' id='relayStatus'>Radar: Đang tải...</div>
    
     <div style='margin-top:15px'>
       <label>Lịch tự động:</label>
@@ -122,11 +122,6 @@
     document.getElementById('radarLevel').innerHTML = (d.radarLevel == 1) 
       ? "Mức Radar: <span class='active-tag'>CAO</span>" 
       : "Mức Radar: Thấp";
-
-    // Trạng thái Relay (Cao / Thấp)
-    document.getElementById('relayStatus').innerHTML = d.relay 
-      ? "Relay: <span class='active-tag'>CAO (BẬT)</span>" 
-      : "Relay: Thấp (TẮT)";
 
     const playBtn = document.getElementById('playBtn');
     isPlaying = !!d.music;
