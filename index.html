@@ -118,6 +118,11 @@
       ? "Cảm biến: <span class='active-tag'>CÓ NGƯỜI</span>" 
       : "Cảm biến: Không có người";
 
+   // Mức PIN_RADAR
+    document.getElementById('radarLevel').innerHTML = d.radarLevel 
+      ? "Mức Radar: <span class='active-tag'>CAO</span>" 
+      : "Mức Radar: Thấp";
+
     // Trạng thái Relay (Cao / Thấp)
     document.getElementById('relayStatus').innerHTML = d.relay 
       ? "Relay: <span class='active-tag'>CAO (BẬT)</span>" 
