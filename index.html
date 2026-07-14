@@ -38,7 +38,8 @@
       <button class='btn btn-thief' onclick='setMode(2)'>TRỘM</button>
     </div>
     <div class='status' id='modeStatus'>Đang tải...</div>
-    
+    <div class='status' id='radarStatus'>Cảm biến: Đang tải...</div>
+   
     <div style='margin-top:15px'>
       <label>Lịch tự động:</label>
       <div class='btn-row'>
@@ -81,7 +82,6 @@
   let isLightOn = false;
 
   function connectMQTT() {
-    mqttClient.subscribe("dongho/log");
     mqttClient = mqtt.connect("wss://broker.hivemq.com:8884/mqtt", {
       clientId: "Web_" + Math.random().toString(16).substr(2,8)
     });
@@ -92,36 +92,30 @@
     });
 
     mqttClient.on('message', (topic, message) => {
-  if (topic === "dongho/status") {
-    try {
-      const d = JSON.parse(message.toString());
-      updateUI(d);
-    } catch(e) {}
-  } else if (topic === "dongho/log") {
-    addLog(message.toString());
-  }
-});
-
-let logLines = [];
-function addLog(text) {
-  const time = new Date().toLocaleTimeString();
-  logLines.push(`[${time}] ${text}`);
-  if (logLines.length > 100) logLines.shift();
-  document.getElementById('log').innerText = logLines.join('\n');
-}
+      if (topic === "dongho/status") {
+        try {
+          const d = JSON.parse(message.toString());
+          updateUI(d);
+        } catch(e) {}
+      }
+    });
   }
 
   function updateUI(d) {
-    document.getElementById('clock').innerHTML = 
-      (d.h||0).toString().padStart(2,'0') + ':' + 
-      (d.m||0).toString().padStart(2,'0') + 
+    document.getElementById('clock').innerHTML =
+      (d.h||0).toString().padStart(2,'0') + ':' +
+      (d.m||0).toString().padStart(2,'0') +
       '<span>:' + (d.s||0).toString().padStart(2,'0') + '</span>';
-
     document.getElementById('temp').innerText = (d.temp||0).toFixed(1);
 
     const mText = ['TẮT','KHÁCH','TRỘM'];
-    document.getElementById('modeStatus').innerHTML = 
+    document.getElementById('modeStatus').innerHTML =
       "Trạng thái: <span class='active-tag'>" + mText[d.mode||0] + "</span>";
+
+    // Trạng thái cảm biến
+    document.getElementById('radarStatus').innerHTML = d.radar 
+      ? "Cảm biến: <span class='active-tag'>CÓ NGƯỜI</span>" 
+      : "Cảm biến: Không có người";
 
     const playBtn = document.getElementById('playBtn');
     isPlaying = !!d.music;
@@ -130,65 +124,51 @@ function addLog(text) {
 
     isLightOn = d.light == 1;
     document.getElementById('lightBtn').innerText = isLightOn ? 'TẮT ĐÈN' : 'BẬT ĐÈN';
-    document.getElementById('lightStatus').innerHTML = isLightOn 
-      ? "<span class='dot dot-green'></span>Đèn: Đang BẬT" 
+    document.getElementById('lightStatus').innerHTML = isLightOn
+      ? "<span class='dot dot-green'></span>Đèn: Đang BẬT"
       : "<span class='dot dot-gray'></span>Đèn: Đang TẮT";
   }
 
   function setMode(m) { if(mqttClient) mqttClient.publish("dongho/mode/set", m.toString()); }
-  function toggleMusic() { 
+  function toggleMusic() {
     isPlaying = !isPlaying;
-    if(mqttClient) mqttClient.publish("dongho/music/set", isPlaying ? "1" : "0"); 
+    if(mqttClient) mqttClient.publish("dongho/music/set", isPlaying ? "1" : "0");
   }
   function prevTrack() { if(mqttClient) mqttClient.publish("dongho/music/prev", "1"); }
   function nextTrack() { if(mqttClient) mqttClient.publish("dongho/music/next", "1"); }
-  function setVolume(v) { 
-    if(mqttClient) mqttClient.publish("dongho/volume/set", v.toString()); 
+  function setVolume(v) {
+    if(mqttClient) mqttClient.publish("dongho/volume/set", v.toString());
     document.getElementById('volVal').innerText = v;
   }
   function toggleAlarm() {
-  const t = document.getElementById('alarmTime').value;
-  const btn = document.getElementById('alarmBtn');
-  
-  if (t) {
-    if (btn.innerText.includes("BẬT")) {
-      mqttClient.publish("dongho/alarm/set", t);
-      btn.innerText = "TẮT BÁO THỨC";
-      btn.style.background = "#e74c3c";
-    } else {
-      mqttClient.publish("dongho/alarm/off", "1");
-      btn.innerText = "BẬT BÁO THỨC";
-      btn.style.background = "#3498db";
+    const t = document.getElementById('alarmTime').value;
+    const btn = document.getElementById('alarmBtn');
+    if (t) {
+      if (btn.innerText.includes("BẬT")) {
+        mqttClient.publish("dongho/alarm/set", t);
+        btn.innerText = "TẮT BÁO THỨC";
+        btn.style.background = "#e74c3c";
+      } else {
+        mqttClient.publish("dongho/alarm/off", "1");
+        btn.innerText = "BẬT BÁO THỨC";
+        btn.style.background = "#3498db";
+      }
     }
   }
-}
-  function toggleLight() { 
-    if(mqttClient) mqttClient.publish("dongho/light/set", "toggle"); 
+  function toggleLight() {
+    if(mqttClient) mqttClient.publish("dongho/light/set", "toggle");
   }
   function saveSchedule() {
-  const start = document.getElementById('schedStart').value;
-  const end = document.getElementById('schedEnd').value;
-   
-  console.log("=== DEBUG LỊCH ===");
-  console.log("Start:", start);
-  console.log("End:", end);
-  console.log("MQTT Client connected:", mqttClient ? mqttClient.connected : false);
-
-  if (!start || !end) {
-    alert("Vui lòng chọn thời gian!");
-    return;
+    const start = document.getElementById('schedStart').value;
+    const end = document.getElementById('schedEnd').value;
+    if (!start || !end) {
+      alert("Vui lòng chọn thời gian!");
+      return;
+    }
+    mqttClient.publish("dongho/schedule/start", start);
+    mqttClient.publish("dongho/schedule/end", end);
+    alert("Đã gửi lịch đến ESP32!");
   }
-
-  if (!mqttClient || !mqttClient.connected) {
-    alert("MQTT chưa kết nối!");
-    return;
-  }
-
-  mqttClient.publish("dongho/schedule/start", start);
-  mqttClient.publish("dongho/schedule/end", end);
-  
-  alert("Đã gửi lịch đến ESP32! Kiểm tra Serial.");
-}
 
   window.onload = () => {
     connectMQTT();
