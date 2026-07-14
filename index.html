@@ -129,7 +129,9 @@
     playBtn.style.background = isPlaying ? '#e74c3c' : '#27ae60';
 
     isLightOn = d.light == 1;
-    document.getElementById('lightBtn').innerText = isLightOn ? 'TẮT ĐÈN' : 'BẬT ĐÈN';
+    const lightBtn = document.getElementById('lightBtn');
+    lightBtn.innerText = isLightOn ? 'TẮT ĐÈN' : 'BẬT ĐÈN';
+    lightBtn.style.background = isLightOn ? '#e74c3c' : '#3498db';  
     document.getElementById('lightStatus').innerHTML = isLightOn
       ? "<span class='dot dot-green'></span>Đèn: Đang BẬT"
       : "<span class='dot dot-gray'></span>Đèn: Đang TẮT";
