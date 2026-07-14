@@ -74,11 +74,6 @@
     </div>
   </div>
 
- <div class='card'>
-    <h3>Serial Log</h3>
-    <pre id='log' style='background:#0f3460;color:#0f0;padding:10px;height:200px;overflow-y:scroll;font-family:monospace;font-size:0.85em;white-space:pre-wrap'></pre>
-  </div>
-
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
   let mqttClient = null;
@@ -86,6 +81,7 @@
   let isLightOn = false;
 
   function connectMQTT() {
+    mqttClient.subscribe("dongho/log");
     mqttClient = mqtt.connect("wss://broker.hivemq.com:8884/mqtt", {
       clientId: "Web_" + Math.random().toString(16).substr(2,8)
     });
@@ -96,13 +92,23 @@
     });
 
     mqttClient.on('message', (topic, message) => {
-      if (topic === "dongho/status") {
-        try {
-          const d = JSON.parse(message.toString());
-          updateUI(d);
-        } catch(e) {}
-      }
-    });
+  if (topic === "dongho/status") {
+    try {
+      const d = JSON.parse(message.toString());
+      updateUI(d);
+    } catch(e) {}
+  } else if (topic === "dongho/log") {
+    addLog(message.toString());
+  }
+});
+
+let logLines = [];
+function addLog(text) {
+  const time = new Date().toLocaleTimeString();
+  logLines.push(`[${time}] ${text}`);
+  if (logLines.length > 100) logLines.shift();
+  document.getElementById('log').innerText = logLines.join('\n');
+}
   }
 
   function updateUI(d) {
@@ -162,13 +168,6 @@
   function saveSchedule() {
   const start = document.getElementById('schedStart').value;
   const end = document.getElementById('schedEnd').value;
-
-  let logLines = [];
-  function addLog(text) {
-    logLines.push(text);
-    if (logLines.length > 50) logLines.shift();  // Giữ tối đa 50 dòng
-    document.getElementById('log').innerText = logLines.join('\n');
-  }
    
   console.log("=== DEBUG LỊCH ===");
   console.log("Start:", start);
