@@ -33,7 +33,7 @@
   <div class='card'>
     <h3>Chế độ & Lịch trình</h3>
     <div class='btn-row'>
-      <button class='btn btn-off' onclick='setMode(0)'>TẮT</button>
+      <button class='btn btn-off' id='btnOff' onclick='setMode(0)'>TẮT</button>
       <button class='btn btn-guest' onclick='setMode(1)'>KHÁCH</button>
       <button class='btn btn-thief' onclick='setMode(2)'>TRỘM</button>
     </div>
@@ -81,6 +81,7 @@
   let mqttClient = null;
   let isPlaying = false;
   let isLightOn = false;
+  let sirenOn = false;
 
   function connectMQTT() {
     mqttClient = mqtt.connect("wss://broker.hivemq.com:8884/mqtt", {
@@ -135,9 +136,22 @@
     document.getElementById('lightStatus').innerHTML = isLightOn
       ? "<span class='dot dot-green'></span>Đèn: Đang BẬT"
       : "<span class='dot dot-gray'></span>Đèn: Đang TẮT";
+
+    // Trạng thái báo động (còi kêu ở chế độ TRỘM)
+    sirenOn = !!d.siren;
+    const btnOff = document.getElementById('btnOff');
+    btnOff.innerText = sirenOn ? 'TẮT BÁO ĐỘNG' : 'TẮT';
   }
 
-  function setMode(m) { if(mqttClient) mqttClient.publish("dongho/mode/set", m.toString()); }
+  function setMode(m) {
+    if (!mqttClient) return;
+    if (m === 0 && sirenOn) {
+      // Đang báo động: chỉ tắt còi, giữ nguyên chế độ TRỘM
+      mqttClient.publish("dongho/siren/stop", "1");
+    } else {
+      mqttClient.publish("dongho/mode/set", m.toString());
+    }
+  }
   function toggleMusic() {
     isPlaying = !isPlaying;
     if(mqttClient) mqttClient.publish("dongho/music/set", isPlaying ? "1" : "0");
