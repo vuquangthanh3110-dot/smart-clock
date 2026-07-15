@@ -111,8 +111,9 @@
     document.getElementById('temp').innerText = (d.temp||0).toFixed(1);
 
     const mText = ['TẮT','KHÁCH','TRỘM'];
+    let alertTag = (d.mode == 2 && d.siren) ? " - 🚨 ĐANG KÊU" : "";
     document.getElementById('modeStatus').innerHTML =
-      "Trạng thái: <span class='active-tag'>" + mText[d.mode||0] + "</span>";
+      "Trạng thái: <span class='active-tag'>" + mText[d.mode||0] + alertTag + "</span>";
 
     // Trạng thái cảm biến radar
     document.getElementById('radarStatus').innerHTML = d.radar 
@@ -146,7 +147,7 @@
   function setMode(m) {
     if (!mqttClient) return;
     if (m === 0 && sirenOn) {
-      // Đang báo động: chỉ tắt còi, giữ nguyên chế độ TRỘM
+      // Đang báo động: chỉ tắt còi, giữ nguyên chế độ TRỘM — giống web local
       mqttClient.publish("dongho/siren/stop", "1");
     } else {
       mqttClient.publish("dongho/mode/set", m.toString());
